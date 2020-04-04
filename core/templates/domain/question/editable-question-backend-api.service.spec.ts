@@ -30,7 +30,56 @@ import { TranslatorProviderForTests } from 'tests/test.extras';
 describe('Editable question backend API service', function() {
   var EditableQuestionBackendApiService = null;
   var QuestionObjectFactory;
-  var sampleDataResults = null;
+  var responseDictionaries = {
+    question_dict: {
+      id: '0',
+      question_state_data: {
+        content: {
+          html: 'Question 1'
+        },
+        recorded_voiceovers: {
+          voiceovers_mapping: {}
+        },
+        interaction: {
+          answer_groups: [],
+          confirmed_unclassified_answers: [],
+          customization_args: {},
+          default_outcome: {
+            dest: null,
+            feedback: {
+              html: 'Correct Answer'
+            },
+            param_changes: [],
+            labelled_as_correct: true
+          },
+          hints: [
+            {
+              hint_content: {
+                html: 'Hint 1'
+              }
+            }
+          ],
+          solution: {
+            correct_answer: 'This is the correct answer',
+            answer_is_exclusive: false,
+            explanation: {
+              html: 'Solution explanation'
+            }
+          },
+          id: 'TextInput'
+        },
+        param_changes: [],
+        solicit_answer_details: false,
+        written_translations: {
+          translations_mapping: {}
+        },
+      },
+      language_code: 'en',
+      version: 1
+    },
+    associated_skill_dicts: []
+  };
+  var sampleDataResultsObjects = null;
   var $rootScope = null;
   var $scope = null;
   var $httpBackend = null;
@@ -63,54 +112,11 @@ describe('Editable question backend API service', function() {
     });
 
     // Sample question object returnable from the backend
-    sampleDataResults = {
-      question_dict: {
-        id: '0',
-        question_state_data: {
-          content: {
-            html: 'Question 1'
-          },
-          recorded_voiceovers: {
-            voiceovers_mapping: {}
-          },
-          interaction: {
-            answer_groups: [],
-            confirmed_unclassified_answers: [],
-            customization_args: {},
-            default_outcome: {
-              dest: null,
-              feedback: {
-                html: 'Correct Answer'
-              },
-              param_changes: [],
-              labelled_as_correct: true
-            },
-            hints: [
-              {
-                hint_content: {
-                  html: 'Hint 1'
-                }
-              }
-            ],
-            solution: {
-              correct_answer: 'This is the correct answer',
-              answer_is_exclusive: false,
-              explanation: {
-                html: 'Solution explanation'
-              }
-            },
-            id: 'TextInput'
-          },
-          param_changes: [],
-          solicit_answer_details: false,
-          written_translations: {
-            translations_mapping: {}
-          },
-        },
-        language_code: 'en',
-        version: 1
-      },
-      associated_skill_dicts: []
+    sampleDataResultsObjects = {
+      questionObject:
+        QuestionObjectFactory.createFromBackendDict(
+          responseDictionaries.question_dict),
+      associatedSkillObjects: []
     };
   }));
 
@@ -125,13 +131,12 @@ describe('Editable question backend API service', function() {
 
     var skillsId = ['0', '01', '02'];
     var skillDifficulties = [1, 1, 2];
-    var questionDict = QuestionObjectFactory.createFromBackendDict(
-      sampleDataResults.question_dict);
+    var questionObject = sampleDataResultsObjects.questionObject;
 
     $httpBackend.expectPOST('/question_editor_handler/create_new').respond(
       200, {question_id: '0'});
     EditableQuestionBackendApiService.createQuestion(
-      skillsId, skillDifficulties, questionDict).then(
+      skillsId, skillDifficulties, questionObject).then(
       successHandler, failHandler);
     $httpBackend.flush();
 
@@ -146,13 +151,12 @@ describe('Editable question backend API service', function() {
 
       var skillsId = ['0', '01', '02'];
       var skillDifficulties = [1, 1, 2];
-      var questionDict = QuestionObjectFactory.createFromBackendDict(
-        sampleDataResults.question_dict);
+      var questionObject = sampleDataResultsObjects.questionObject;
 
       $httpBackend.expectPOST('/question_editor_handler/create_new').respond(
         500, 'Error creating a new question.');
       EditableQuestionBackendApiService.createQuestion(
-        skillsId, skillDifficulties, questionDict).then(
+        skillsId, skillDifficulties, questionObject).then(
         successHandler, failHandler);
       $httpBackend.flush();
 
@@ -167,13 +171,13 @@ describe('Editable question backend API service', function() {
       var failHandler = jasmine.createSpy('fail');
 
       $httpBackend.expect('GET', '/question_editor_handler/data/0').respond(
-        sampleDataResults);
+        sampleDataResultsObjects);
       EditableQuestionBackendApiService.fetchQuestion('0').then(
         successHandler, failHandler);
       $httpBackend.flush();
 
       expect(successHandler).toHaveBeenCalledWith(
-        sampleDataResults);
+        sampleDataResultsObjects);
       expect(failHandler).not.toHaveBeenCalled();
     }
   );
@@ -202,17 +206,17 @@ describe('Editable question backend API service', function() {
 
       // Loading a question the first time should fetch it from the backend.
       $httpBackend.expect('GET', '/question_editor_handler/data/0').respond(
-        sampleDataResults);
+        sampleDataResultsObjects);
 
       EditableQuestionBackendApiService.fetchQuestion('0').then(
         function(data) {
-          question = data.question_dict;
+          question = data.questionObject;
         });
       $httpBackend.flush();
-      question.question_state_data.content.html = 'New Question Content';
-      question.version = '2';
+      question.getStateData().setContent('New Question Content');
+      question.setVersion('2');
       var questionWrapper = {
-        question_dict: question
+        question_dict: question.toBackendDict(false)
       };
 
       $httpBackend.expect('PUT', '/question_editor_handler/data/0').respond(
@@ -220,7 +224,7 @@ describe('Editable question backend API service', function() {
 
       // Send a request to update question
       EditableQuestionBackendApiService.updateQuestion(
-        question.id, question.version, 'Question Data is updated', []
+        question.getId(), question.getVersion(), 'Question Data is updated', []
       ).then(successHandler, failHandler);
       $httpBackend.flush();
 

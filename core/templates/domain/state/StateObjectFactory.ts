@@ -60,6 +60,10 @@ export class State {
     this.name = newName;
   }
 
+  setContent(newHtml: string): any {
+    this.content.html = newHtml;
+  }
+
   // TODO(#7165): Replace any with exact type.
   toBackendDict(): any {
     return {

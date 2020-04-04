@@ -57,6 +57,10 @@ angular.module('oppia').factory('QuestionObjectFactory', [
       return this._version;
     };
 
+    Question.prototype.setVersion = function(version) {
+      this._version = version;
+    };
+
     Question.prototype.getLinkedSkillIds = function() {
       return this._linkedSkillIds;
     };
