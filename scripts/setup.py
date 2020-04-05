@@ -22,7 +22,7 @@ import os
 import subprocess
 import sys
 import tarfile
-import ssl
+
 import python_utils
 
 from . import clean
@@ -32,7 +32,6 @@ _PARSER = argparse.ArgumentParser(description="""
 Python execution environent set up for all scripts.
 """)
 
-ssl._create_default_https_context = ssl._create_unverified_context
 
 def create_directory(directory_path):
     """Creates a new directory. Does not do anything if directory already
@@ -79,7 +78,6 @@ def download_and_install_package(url_to_retrieve, filename):
             downloaded.
         filename: string. The name of the tar file.
     """
-    ssl._create_default_https_context = ssl._create_unverified_context
     python_utils.url_retrieve(url_to_retrieve, filename=filename)
     tar = tarfile.open(name=filename)
     tar.extractall(path=common.OPPIA_TOOLS_DIR)
